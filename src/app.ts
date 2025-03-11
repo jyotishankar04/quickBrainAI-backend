@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import _env from "./config/envConfig";
 // Routes
 import clientRoutes from "./modules/client/client.routes";
+import globalErrorHandler from "./middlewares/globalErrorHandler";
+import morgan from "morgan";
 
 class App {
   public app: Application;
@@ -23,6 +25,8 @@ class App {
     );
     this.app.use(bodyParser.json());
     this.app.use(cookieParser());
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(morgan("dev"));
   }
 
   private setRoutes(): void {
@@ -32,6 +36,9 @@ class App {
         message: "Server is up and running!",
       });
     });
+
+    // Error handling middleware
+    this.app.use(globalErrorHandler);
   }
 }
 
