@@ -9,6 +9,7 @@ const globalErrorHandler = (
 ) => {
   const statusCode = err.status || 500;
 
+  console.error(err);
   res.status(statusCode).json({
     success: false,
     statusCode: statusCode,
