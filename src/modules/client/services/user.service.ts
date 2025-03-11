@@ -14,6 +14,9 @@ class UserService {
     const username = email.split("@")[0];
     return username;
   }
+  public async verifyPassword(password: string, hashedPassword: string) {
+    return bcrypt.compare(password, hashedPassword);
+  }
 
   public async checkUserExists(
     email: string,

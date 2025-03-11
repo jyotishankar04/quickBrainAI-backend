@@ -1,5 +1,10 @@
 import zod from "zod";
 
+const getErrorMessage = (error: zod.ZodError) => {
+  const message = error.errors[0].message;
+  return message;
+};
+
 const registerSetp1Validator = zod.object({
   email: zod.string().email(),
 });
@@ -20,7 +25,6 @@ const registerCompletionValidator = zod
     name: zod.string().min(3, {
       message: "Name must be at least 3 characters",
     }),
-    email: zod.string().email(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -34,6 +38,7 @@ const loginValidator = zod.object({
 });
 
 export {
+  getErrorMessage,
   registerSetp1Validator,
   registerVerificationValidator,
   registerCompletionValidator,

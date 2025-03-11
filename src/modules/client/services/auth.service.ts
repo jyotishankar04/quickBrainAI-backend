@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
 import _env from "../../../config/envConfig";
 import prisma from "../../../config/prisma.config";
 import createHttpError, { HttpError } from "http-errors";

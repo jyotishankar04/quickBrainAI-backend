@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import MailService from "../services/mail.service";
 import {
+  getErrorMessage,
   loginValidator,
   registerCompletionValidator,
   registerSetp1Validator,
@@ -20,7 +21,7 @@ class AuthController {
     const validator = registerSetp1Validator.safeParse(body);
 
     if (!validator.success) {
-      return next(createHttpError(400, validator.error.message));
+      return next(createHttpError(400, getErrorMessage(validator.error)));
     }
 
     const userExists = await userService.checkUserExists(body.email);
@@ -58,7 +59,7 @@ class AuthController {
     });
 
     if (!validator.success) {
-      return next(createHttpError(400, validator.error.message));
+      return next(createHttpError(400, getErrorMessage(validator.error)));
     }
     const response = await AuthService.validateOtp(body.email, body.otp);
 
@@ -92,7 +93,7 @@ class AuthController {
     });
 
     if (!validator.success) {
-      return next(createHttpError(400, validator.error.message));
+      return next(createHttpError(400, getErrorMessage(validator.error)));
     }
     if (!registrationToken) {
       res.clearCookie("registrationToken");
@@ -139,18 +140,52 @@ class AuthController {
     });
   }
 
-  public async login(req: Request, res: Response, next: NextFunction) {
+  public async login(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
     const body = req.body;
     const validator = loginValidator.safeParse({
       email: body.email,
       password: body.password,
     });
-
     if (!validator.success) {
-      return next(createHttpError(400, validator.error.message));
+      return next(createHttpError(400, getErrorMessage(validator.error)));
     }
 
-    res.json({
+    const isUserExists = await userService.checkUserExists(body.email, {
+      password: true,
+    });
+    if (!isUserExists) {
+      return next(createHttpError(400, "User does not exist"));
+    }
+
+    const isValidPassword = await userService.verifyPassword(
+      body.password,
+      isUserExists.user.password
+    );
+    if (!isValidPassword) {
+      return next(createHttpError(400, "Invalid password"));
+    }
+
+    const token = await AuthService.createTokens(
+      isUserExists.user.id,
+      isUserExists.user.email
+    );
+    if (!token || !token.accessToken || !token.refreshToken) {
+      return next(createHttpError(500, "Error creating token"));
+    }
+
+    res.cookie("accessToken", token.accessToken, {
+      httpOnly: true,
+    });
+    res.cookie("refreshToken", token.refreshToken, {
+      httpOnly: true,
+    });
+
+    return res.json({
+      success: true,
       message: "User logged in successfully!",
     });
   }
