@@ -1,5 +1,5 @@
 import express, { Application } from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import _env from "./config/envConfig";
@@ -20,11 +20,15 @@ class App {
   private setMiddleware(): void {
     this.app.use(
       cors({
-        origin: ["http://localhost:3000", "http://localhost:5473"],
-      })
+        origin: ["http://localhost:5173"],
+
+        credentials: true,
+      } as CorsOptions)
     );
+    this.app.use(express.json());
     this.app.use(bodyParser.json());
     this.app.use(cookieParser());
+
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(morgan("dev"));
   }
