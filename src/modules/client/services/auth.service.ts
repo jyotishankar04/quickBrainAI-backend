@@ -136,6 +136,71 @@ class AuthService {
       return false;
     }
   }
+
+  public async logout(userId: string) {
+    try {
+      const response = await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          refreshToken: null,
+        },
+      });
+      if (!response) return createHttpError(500, "Error logging out user");
+    } catch (error) {
+      console.error(error);
+      return createHttpError(500, "Error logging out user");
+    }
+  }
+  public async verifyAccessToken(accessToken: string) {
+    try {
+      const decoded = jwt.verify(accessToken, _env.JWT_SECRET as string) as {
+        id: string;
+        email: string;
+      };
+      return {
+        id: decoded.id,
+        email: decoded.email,
+      };
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+  public async verifyRefreshToken(
+    oldRefreshtoken: string
+  ): Promise<string | false> {
+    try {
+      const decoded = jwt.verify(
+        oldRefreshtoken,
+        _env.JWT_SECRET as string
+      ) as {
+        id: string;
+        email: string;
+      };
+      const user = await prisma.user.findUnique({
+        where: {
+          id: decoded.id,
+        },
+        select: {
+          id: true,
+          email: true,
+          refreshToken: true,
+        },
+      });
+      if (!user) return false;
+      if (user.refreshToken !== oldRefreshtoken) return false;
+      const token = (await this.generateAccessToken({
+        id: user.id,
+        email: user.email,
+      })) as string;
+      return token;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
 }
 
 export default new AuthService();

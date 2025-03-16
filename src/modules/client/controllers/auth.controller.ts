@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, CookieOptions } from "express";
 import MailService from "../services/mail.service";
 import {
   getErrorMessage,
@@ -10,6 +10,14 @@ import {
 import createHttpError from "http-errors";
 import userService from "../services/user.service";
 import AuthService from "../services/auth.service";
+import { ICustomRequest } from "../../../types/client.types";
+
+const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: false,
+  expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
+};
 
 class AuthController {
   public async register(
@@ -35,9 +43,7 @@ class AuthController {
       return next(createHttpError(500, "Error sending email"));
     }
 
-    res.cookie("email", body.email, {
-      httpOnly: true,
-    });
+    res.cookie("email", body.email, cookieOptions);
 
     return res.json({
       success: true,
@@ -61,15 +67,12 @@ class AuthController {
     if (!validator.success) {
       return next(createHttpError(400, getErrorMessage(validator.error)));
     }
-    const response = await AuthService.validateOtp(body.email, body.otp);
-
+    const response = await AuthService.validateOtp(email, body.otp);
     if (!response.success) {
       return next(createHttpError(400, "Error validating OTP"));
     }
 
-    res.cookie("registrationToken", response.tempToken, {
-      httpOnly: true,
-    });
+    res.cookie("registrationToken", response.tempToken, cookieOptions);
 
     return res.json({
       success: true,
@@ -129,11 +132,10 @@ class AuthController {
     await MailService.sendWelcomeEmail(user.user.email, body.name);
 
     res.cookie("accessToken", token.accessToken, {
-      httpOnly: true,
+      ...cookieOptions,
+      maxAge: 1000 * 60 * 60,
     });
-    res.cookie("refreshToken", token.refreshToken, {
-      httpOnly: true,
-    });
+    res.cookie("refreshToken", token.refreshToken, cookieOptions);
     res.clearCookie("registrationToken");
     return res.json({
       message: "User registration completed successfully!",
@@ -179,9 +181,17 @@ class AuthController {
 
     res.cookie("accessToken", token.accessToken, {
       httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+      sameSite: "lax",
+      secure: false,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
     });
     res.cookie("refreshToken", token.refreshToken, {
       httpOnly: true,
+      maxAge: 1000 * 60 * 60,
+      sameSite: "lax",
+      secure: false,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
     });
 
     return res.json({
@@ -190,16 +200,77 @@ class AuthController {
     });
   }
 
-  public async logout(req: Request, res: Response, next: NextFunction) {
+  public async logout(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    const _req = req as ICustomRequest;
+    try {
+      await AuthService.logout(_req.user.id);
+    } catch (error) {
+      return next(createHttpError(500, "Error logging out user"));
+    }
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
     res.json({
+      success: true,
       message: "User logged out successfully!",
     });
   }
 
-  public async session(req: Request, res: Response, next: NextFunction) {
-    res.json({
+  public async refresh(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    const _req = req as ICustomRequest;
+    const cookie = req.cookies;
+    const user = _req.user;
+
+    const refreshToken = cookie.refreshToken;
+    console.log("refreshToken", refreshToken);
+    if (!refreshToken) {
+      return next(createHttpError(400, "Invalid Token, Please login again"));
+    }
+    const accessToken = await AuthService.verifyRefreshToken(refreshToken);
+    if (!accessToken) {
+      res.clearCookie("refreshToken");
+      return next(createHttpError(400, "Invalid Token, Please signin again"));
+    }
+    res.cookie("accessToken", accessToken, cookieOptions);
+
+    return res.json({
+      success: true,
       message: "User session retrieved successfully!",
     });
+  }
+  public async getSession(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const _req = req as ICustomRequest;
+      const user = _req.user;
+
+      const userExist = await userService.checkUserExists(user.email);
+      if (!userExist) {
+        return next(createHttpError(404, "User not found"));
+      }
+      return res.status(200).json({
+        success: true,
+        message: "User authenticated successfully!",
+        data: {
+          ...userExist,
+          password: "",
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      return next(createHttpError(400, "Authentication failed!"));
+    }
   }
 }
 
