@@ -32,10 +32,55 @@ model User {
 
   role             Role             @default(USER)
   subscriptionPlan SubscriptionPlan @default(FREE)
+  Notes            Notes[]
 
   @@index([email])
   @@index([username])
   @@map("users")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  Notes     Notes[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Notes {
+  id              String   @id @default(uuid())
+  noteTitle       String
+  noteDescription String
+  noteContent     String
+  isStared        Boolean  @default(false)
+  isPrivate       Boolean  @default(false)
+  files           String[]
+
+  tags   NoteTags[]
+  user   User?      @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  Category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+
+  @@index([userId])
+  @@map("notes")
+}
+
+model NoteTags {
+  id        String   @id @default(uuid())
+  tagName   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Notes     Notes?   @relation(fields: [notesId], references: [id])
+  notesId   String?
+
+  @@index([notesId])
+  @@map("noteTags")
 }
 
 model Otp {
@@ -48,6 +93,8 @@ model Otp {
 
   @@map("otp")
 }
+
+// ENUMS 
 
 enum Role {
   USER
