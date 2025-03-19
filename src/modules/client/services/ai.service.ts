@@ -94,10 +94,14 @@ class AiService {
       throw error;
     }
   }
-  private async getEmbeddingsList(topK: number = 1, question: string) {
+  private async getEmbeddingsList(
+    topK: number = 1,
+    noteId: string,
+    question: string
+  ) {
     const { index } = this.getIndex();
     if (!index) return null;
-    const res = await index.searchRecords({
+    const res = await index.namespace(noteId).searchRecords({
       query: {
         topK,
         inputs: {
@@ -143,7 +147,6 @@ class AiService {
     if (!note) {
       return new Error("Note not found");
     }
-    console.log("note", note);
     const content = note.extractedText;
 
     try {
@@ -166,7 +169,6 @@ class AiService {
       ) {
         return new Error("Error generating summary");
       }
-      console.log(result.response);
       //parse the resopnse to json
       const summary = JSON.parse(
         result.response.candidates[0].content.parts[0].text
@@ -203,7 +205,6 @@ class AiService {
       return null;
     }
     const record = embedPdfFile.result.hits.map((hit: any) => hit.fields);
-    console.log("record", record);
     const res = await answerModel.generateContent(
       "What is the answer to this question: " +
         question +
@@ -232,8 +233,7 @@ class AiService {
     const note = await notesService.getNoteByNoteId(noteId); // Assuming notesService is accessible via 'this'
     if (!note) return new Error("Note not found");
     const chatId = note.chatId;
-    const record = await this.getEmbeddingsList(1, question);
-    console.log("record", record);
+    const record = await this.getEmbeddingsList(1, noteId, question);
     const res = await chatBotModel.generateContent(
       "What is the answer to this question: " +
         question +
