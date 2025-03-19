@@ -13,7 +13,12 @@ import {
 } from "@pinecone-database/pinecone";
 import _env from "../../../config/envConfig";
 import notesService from "./notes.service";
-import { answerModel, summaryModel } from "../../../config/gemini.config";
+import {
+  answerModel,
+  chatBotModel,
+  summaryModel,
+} from "../../../config/gemini.config";
+import prisma from "../../../config/prisma.config";
 
 class AiService {
   private async loadPDFDocument(pdfPath: string) {
@@ -88,6 +93,27 @@ class AiService {
       console.error("Error in embedPdf:", error);
       throw error;
     }
+  }
+  private async getEmbeddingsList(topK: number = 1, question: string) {
+    const { index } = this.getIndex();
+    if (!index) return null;
+    const res = await index.searchRecords({
+      query: {
+        topK,
+        inputs: {
+          text: question,
+        },
+      },
+    });
+    if (
+      !res ||
+      !res.result ||
+      !res.result.hits[0] ||
+      !res.result.hits[0].fields
+    ) {
+      return null;
+    }
+    return res.result.hits.map((hit: any) => hit.fields);
   }
 
   public async embedPdfFile(file: string, noteId: string) {
@@ -182,7 +208,7 @@ class AiService {
       "What is the answer to this question: " +
         question +
         " ?" +
-        "from the document in simple understandable language : " +
+        "from the document in simple understandable language (if not found then return emptystring) : " +
         JSON.stringify(record)
     );
     if (
@@ -199,6 +225,116 @@ class AiService {
     }
     const answer = JSON.parse(res.response.candidates[0].content.parts[0].text);
     return answer;
+  }
+
+  // Chat from PDF
+  public async getChatFromPdf(noteId: string, question: string) {
+    const note = await notesService.getNoteByNoteId(noteId); // Assuming notesService is accessible via 'this'
+    if (!note) return new Error("Note not found");
+    const chatId = note.chatId;
+    const record = await this.getEmbeddingsList(1, question);
+    console.log("record", record);
+    const res = await chatBotModel.generateContent(
+      "What is the answer to this question: " +
+        question +
+        " ?" +
+        "from the document in simple understandable language (if not found then return emptystring) : " +
+        JSON.stringify(record)
+    );
+    if (
+      !res ||
+      !res.response ||
+      !res.response.candidates ||
+      !res.response.candidates[0] ||
+      !res.response.candidates[0].content ||
+      !res.response.candidates[0].content.parts ||
+      !res.response.candidates[0].content.parts[0] ||
+      !res.response.candidates[0].content.parts[0].text
+    ) {
+      return new Error("Error in getting response");
+    }
+    const answer = JSON.parse(
+      res.response.candidates[0].content.parts[0].text
+    ).answer;
+    if (!chatId) {
+      const createRes = await prisma.chat.create({
+        data: {
+          Notes: {
+            connect: {
+              id: note.id,
+            },
+          },
+          user: {
+            connect: {
+              id: note.userId,
+            },
+          },
+          messages: {
+            createMany: {
+              data: [
+                {
+                  content: question,
+                  sender: "USER",
+                },
+                {
+                  content: answer,
+                  sender: "AI",
+                },
+              ],
+            },
+          },
+          noteId: note.id,
+        },
+        include: {
+          messages: {
+            select: {
+              content: true,
+              sender: true,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 2,
+          },
+        },
+      });
+      return createRes.messages;
+    } else {
+      const createRes = await prisma.chat.update({
+        where: {
+          id: chatId,
+        },
+        data: {
+          messages: {
+            createMany: {
+              data: [
+                {
+                  content: question,
+                  sender: "USER",
+                },
+                {
+                  content: answer,
+                  sender: "AI",
+                },
+              ],
+            },
+          },
+        },
+        include: {
+          messages: {
+            select: {
+              content: true,
+              sender: true,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 2,
+          },
+        },
+      });
+      return createRes.messages;
+    }
   }
 }
 

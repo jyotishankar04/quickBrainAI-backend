@@ -52,6 +52,7 @@ const answerSchema: Schema = {
     },
   },
 };
+
 const answerModel = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
   generationConfig: {
@@ -61,4 +62,23 @@ const answerModel = genAI.getGenerativeModel({
   },
 });
 
-export { summaryModel, answerModel };
+const chatBotSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    answer: {
+      type: SchemaType.STRING,
+      description: "The answer to the question",
+    },
+  },
+};
+
+const chatBotModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+    temperature: 0.5,
+    responseSchema: chatBotSchema,
+  },
+});
+
+export { summaryModel, answerModel, chatBotModel };
