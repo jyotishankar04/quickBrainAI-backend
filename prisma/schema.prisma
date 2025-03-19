@@ -74,7 +74,8 @@ model Notes {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Chat      Chat[]
+  chat      Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade) // One-to-One relationship
+  chatId    String?  @unique
 
   @@index([userId])
   @@map("notes")
@@ -82,12 +83,12 @@ model Notes {
 
 model Chat {
   id        String    @id @default(uuid())
-  note      Notes     @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  noteId    String
+  noteId    String    @unique // Ensures one-to-one relationship
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   messages  Message[]
   createdAt DateTime  @default(now())
+  Notes     Notes?
 
   @@index([noteId])
   @@index([userId])

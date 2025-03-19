@@ -205,6 +205,22 @@ class NotesService {
         where: {
           id: noteId,
         },
+        include: {
+          category: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+          chat: {
+            include: {
+              messages: true,
+            },
+          },
+        },
       });
       return note;
     } catch (error) {
