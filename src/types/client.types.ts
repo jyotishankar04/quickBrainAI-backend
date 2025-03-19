@@ -10,4 +10,8 @@ export interface ICustomRequest extends Request {
     id: string;
     email: string;
   };
+  files: {
+    [key: string]: Express.Multer.File[];
+  };
+  file: Express.Multer.File;
 }

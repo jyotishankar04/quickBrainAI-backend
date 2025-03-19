@@ -188,7 +188,7 @@ class AuthController {
     });
     res.cookie("refreshToken", token.refreshToken, {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 30,
       sameSite: "lax",
       secure: false,
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),

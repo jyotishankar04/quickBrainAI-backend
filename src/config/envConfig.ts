@@ -9,7 +9,11 @@ const _config = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  PINECONE_API_KEY: process.env.PINECONE_API_KEY,
+  GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID,
+  GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
 };
+console.log(_config);
 
 const _env = Object.freeze(_config);
 

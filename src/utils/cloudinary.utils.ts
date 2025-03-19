@@ -1,6 +1,8 @@
 import fs from "fs";
 import _env from "../config/envConfig";
 import { v2 as cloudinary } from "cloudinary";
+import aiController from "../modules/client/controllers/ai.controller";
+import aiService from "../modules/client/services/ai.service";
 
 cloudinary.config({
   cloud_name: _env.CLOUDINARY_CLOUD_NAME,
@@ -18,8 +20,10 @@ const uploadOnCloudinary = async (
       folder,
       resource_type: "auto",
     });
-    fs.unlinkSync(filePath);
-    return result;
+    return {
+      result,
+      filePath,
+    };
   } catch (error) {
     fs.unlinkSync(filePath);
     return false;

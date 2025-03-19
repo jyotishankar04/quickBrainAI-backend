@@ -33,6 +33,8 @@ model User {
   role             Role             @default(USER)
   subscriptionPlan SubscriptionPlan @default(FREE)
   Notes            Notes[]
+  categories       Category[]
+  Chat             Chat[]
 
   @@index([email])
   @@index([username])
@@ -40,12 +42,16 @@ model User {
 }
 
 model Category {
-  id        String   @id @default(uuid())
-  name      String
-  Notes     Notes[]
+  id     String  @id @default(uuid())
+  name   String
+  Notes  Notes[]
+  userId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([name, userId])
   @@map("categories")
 }
 
@@ -57,32 +63,51 @@ model Notes {
   isStared        Boolean  @default(false)
   isPrivate       Boolean  @default(false)
   files           String[]
+  extractedText   String   @default("")
 
-  tags   NoteTags[]
-  user   User?      @relation(fields: [userId], references: [id])
-  userId String
-
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  Category   Category? @relation(fields: [categoryId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?
+
+  tags String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Chat      Chat[]
 
   @@index([userId])
   @@map("notes")
 }
 
-model NoteTags {
-  id        String   @id @default(uuid())
-  tagName   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Notes     Notes?   @relation(fields: [notesId], references: [id])
-  notesId   String?
+model Chat {
+  id        String    @id @default(uuid())
+  note      Notes     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  noteId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  messages  Message[]
+  createdAt DateTime  @default(now())
 
-  @@index([notesId])
-  @@map("noteTags")
+  @@index([noteId])
+  @@index([userId])
+  @@map("chats")
 }
 
+model Message {
+  id      String @id @default(uuid())
+  chat    Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId  String
+  sender  Sender @default(USER) // Enum to identify User or AI messages
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@index([chatId])
+  @@map("messages")
+}
+
+// Explicit many-to-many relationship table
 model Otp {
   id        String   @id @default(cuid())
   otp       String
@@ -105,4 +130,9 @@ enum SubscriptionPlan {
   FREE
   PREMIUM
   PRO
+}
+
+enum Sender {
+  USER
+  AI
 }
