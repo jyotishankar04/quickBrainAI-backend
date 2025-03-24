@@ -4,6 +4,10 @@ import prisma from "../../../config/prisma.config";
 import { uploadOnCloudinary } from "../../../utils/cloudinary.utils";
 import fs from "fs";
 import aiService from "./ai.service";
+import {
+  createServiceError,
+  TcreateServiceSuccess,
+} from "../../../utils/service.error";
 
 interface ICreateNote {
   noteTitle: string;
@@ -18,8 +22,37 @@ class NotesService {
   private async getNotesByUserId(
     userId: string,
     limit: number,
-    offset: number
+    offset: number,
+    orderBy: string,
+    sortBy: string
   ) {
+    let orderFilter: any = {};
+    switch (orderBy) {
+      case "atoz":
+        orderFilter.noteTitle = "asc";
+        break;
+      case "ztoa":
+        orderFilter.noteTitle = "desc";
+        break;
+      case "createdAt":
+        orderFilter.createdAt = "asc";
+        break;
+      case "updatedAt":
+        orderFilter.updatedAt = "desc";
+        break;
+      default:
+        orderFilter.createdAt = "desc";
+    }
+
+    if (sortBy === "desc" && orderBy === "createdAt") {
+      orderFilter.createdAt = "desc";
+    }
+    if (sortBy === "asc" && orderBy === "createdAt") {
+      orderFilter.createdAt = "asc";
+    }
+    if (sortBy === "desc" && orderBy === "updatedAt") {
+      orderFilter.updatedAt = "desc";
+    }
     const notes = await prisma.notes.findMany({
       where: {
         user: {
@@ -39,22 +72,138 @@ class NotesService {
       },
       take: limit,
       skip: offset,
+      orderBy: orderFilter,
     });
-    return notes;
+    const count = await prisma.notes.count({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+    });
+    return {
+      notes,
+      _count: {
+        notes: count,
+      },
+    };
   }
-  private async getNotesByCategoryId(
+  private async getStarredNotesByUserId(
     userId: string,
     limit: number,
     offset: number,
-    categoryId: string
+    orderBy: string,
+    sortBy: string
   ) {
+    let orderFilter: any = {};
+    switch (orderBy) {
+      case "atoz":
+        orderFilter.noteTitle = "asc";
+        break;
+      case "ztoa":
+        orderFilter.noteTitle = "desc";
+        break;
+      case "createdAt":
+        orderFilter.createdAt = "asc";
+        break;
+      case "updatedAt":
+        orderFilter.updatedAt = "desc";
+        break;
+      default:
+        orderFilter.createdAt = "desc";
+    }
+    if (sortBy === "asc" && orderBy === "createdAt") {
+      orderFilter.createdAt = "asc";
+    }
+    if (sortBy === "desc" && orderBy === "createdAt") {
+      orderFilter.createdAt = "desc";
+    }
+    if (sortBy === "desc" && orderBy === "updatedAt") {
+      orderFilter.updatedAt = "desc";
+    }
+
+    const notes = await prisma.notes.findMany({
+      where: {
+        user: {
+          id: userId,
+        },
+        isStared: true,
+      },
+      include: {
+        category: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      take: limit,
+      skip: offset,
+      orderBy: orderFilter,
+    });
+    const count = await prisma.notes.count({
+      where: {
+        user: {
+          id: userId,
+        },
+        isStared: true,
+      },
+    });
+    return {
+      notes,
+      _count: {
+        notes: count,
+      },
+    };
+  }
+  private async getNotesByCategory(
+    userId: string,
+    limit: number,
+    offset: number,
+    categoryName: string,
+    orderBy: string,
+    sortBy: string
+  ) {
+    let orderFilter: any = {};
+    switch (orderBy) {
+      case "atoz":
+        orderFilter.noteTitle = "asc";
+        break;
+      case "ztoa":
+        orderFilter.noteTitle = "desc";
+        break;
+      case "createdAt":
+        orderFilter.createdAt = "asc";
+        break;
+      case "updatedAt":
+        orderFilter.updatedAt = "desc";
+        break;
+      default:
+        orderFilter.createdAt = "desc";
+    }
+
+    if (!categoryName) {
+      return {
+        notes: [],
+        _count: {
+          notes: 0,
+        },
+      };
+    }
+    if (categoryName === "all") {
+      return this.getNotesByUserId(userId, limit, offset, orderBy, sortBy);
+    }
+
     const notes = await prisma.notes.findMany({
       where: {
         user: {
           id: userId,
         },
         category: {
-          id: categoryId,
+          name: categoryName,
         },
       },
       include: {
@@ -70,17 +219,39 @@ class NotesService {
       },
       take: limit,
       skip: offset,
+      orderBy: orderFilter,
     });
-    return notes;
+    const count = await prisma.notes.count({
+      where: {
+        user: {
+          id: userId,
+        },
+        category: {
+          name: categoryName,
+        },
+      },
+    });
+    return {
+      notes,
+      _count: {
+        notes: count,
+      },
+    };
   }
-  public async checkIsCategoryExists(categoryId: string) {
+  public async checkIsCategoryExists(category: string, userId: string) {
+    if (category === "all") return true;
+    if (!category) return false;
+
     try {
-      const category = await prisma.category.findUnique({
+      const res = await prisma.category.findUnique({
         where: {
-          id: categoryId,
+          name_userId: {
+            name: category,
+            userId,
+          },
         },
       });
-      if (category) return true;
+      if (res) return true;
       return false;
     } catch (error) {
       console.error(error);
@@ -154,19 +325,16 @@ class NotesService {
           category: {
             connectOrCreate: {
               where: {
-                name_userId: {
-                  name: noteCategory,
-                  userId,
-                },
+                id: noteCategory,
               },
               create: {
-                name: noteCategory.toLowerCase(),
+                name: "general",
                 userId,
               },
             },
           },
           isPrivate: isPrivate || false,
-          files: [fileUrl],
+          files: (fileUrl && [fileUrl]) || [],
           user: {
             connect: {
               id: userId,
@@ -186,14 +354,32 @@ class NotesService {
     limit: number,
     offset: number,
     category?: string,
-    tag?: string
-  ): Promise<Notes[]> {
+    filterBy: string = "all",
+    orderBy: string = "createdAt",
+    sortBy: string = "desc"
+  ): Promise<any> {
     try {
       if (category) {
-        return this.getNotesByCategoryId(userId, limit, offset, category);
+        return this.getNotesByCategory(
+          userId,
+          limit,
+          offset,
+          category,
+          orderBy,
+          sortBy
+        );
+      }
+      if (filterBy === "starred") {
+        return this.getStarredNotesByUserId(
+          userId,
+          limit,
+          offset,
+          orderBy,
+          sortBy
+        );
       }
 
-      return this.getNotesByUserId(userId, limit, offset);
+      return this.getNotesByUserId(userId, limit, offset, orderBy, sortBy);
     } catch (error) {
       console.error(error);
       return [];
@@ -257,7 +443,12 @@ class NotesService {
     try {
       const categories = await prisma.category.findMany({
         where: {
-          userId,
+          User: {
+            id: userId,
+          },
+        },
+        include: {
+          _count: true,
         },
       });
       return categories;
@@ -266,22 +457,78 @@ class NotesService {
       return [];
     }
   }
-  public async createCategory(userId: string, name: string) {
+  public async createCategory(
+    userId: string,
+    name: string
+  ): Promise<any | TcreateServiceSuccess> {
+    if (!name) return createServiceError("Category name is required", 400);
+    if (name.length < 3)
+      return createServiceError("Category name must be at least 3 characters");
+    if (userId === "") return createServiceError("User id is required", 400);
+
     try {
       const category = await prisma.category.create({
         data: {
-          name,
+          name: name.toLowerCase(),
           User: {
             connect: {
               id: userId,
             },
           },
         },
+        include: {
+          _count: true,
+        },
       });
+      if (!category) return createServiceError("Category already exist", 400);
       return category;
     } catch (error) {
-      console.error(error);
-      return false;
+      return createServiceError("Error creating category");
+    }
+  }
+  public async toggleStarredNote(noteId: string, userId: string): Promise<any> {
+    try {
+      const note = await prisma.notes.findUnique({
+        where: {
+          id: noteId,
+        },
+      });
+      if (!note) return createServiceError("Note not found", 404);
+      const result = await prisma.notes.update({
+        where: {
+          id: noteId,
+        },
+        data: {
+          isStared: !note.isStared,
+        },
+      });
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return createServiceError("Error toggling starred note");
+    }
+  }
+  public async deleteNote(noteId: string, userId: string): Promise<any> {
+    try {
+      const note = await prisma.notes.findUnique({
+        where: {
+          id: noteId,
+        },
+      });
+      if (!note) return createServiceError("Note not found", 404);
+      const result = await prisma.notes.delete({
+        where: {
+          id: noteId,
+        },
+      });
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return createServiceError("Error deleting note");
     }
   }
 }

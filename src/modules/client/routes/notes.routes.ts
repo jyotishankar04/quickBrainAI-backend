@@ -13,6 +13,9 @@ router.get("/search", NotesController.searchNotes);
 router.get("/categories", NotesController.getCategories);
 router.post("/categories", NotesController.createCategory);
 
+router.put("/starred/:id", NotesController.toggleStarredNote);
+router.delete("/:id", NotesController.deleteNote);
+
 router.post("/", pdfUpload.single("pdfFile"), NotesController.createNote);
 router.get("/", NotesController.getNotes);
 router.get("/:id", NotesController.getNoteById);
