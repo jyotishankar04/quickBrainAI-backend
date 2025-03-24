@@ -17,6 +17,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
       _env.JWT_SECRET as string
     ) as IAuthTokenParams;
 
+    console.log("id", id);
     if (!id || !email) {
       res.clearCookie("accressToken", {
         httpOnly: true,

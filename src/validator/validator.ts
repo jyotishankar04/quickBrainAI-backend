@@ -51,7 +51,6 @@ const createNotesValidator = zod.object({
       message: "Category must be at least 3 characters",
     })
     .optional(),
-  noteTags: zod.string().array().optional(),
   isPrivate: zod.boolean().optional().default(false),
 });
 

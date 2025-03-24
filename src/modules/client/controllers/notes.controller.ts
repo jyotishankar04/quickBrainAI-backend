@@ -7,6 +7,7 @@ import {
 } from "../../../validator/validator";
 import NotesService from "../services/notes.service";
 import aiService from "../services/ai.service";
+import { TcreateServiceSuccess } from "../../../utils/service.error";
 
 class NotesController {
   public async createNote(
@@ -15,58 +16,71 @@ class NotesController {
     next: NextFunction
   ): Promise<any> {
     try {
+      const _req = req as ICustomRequest;
       const { noteTitle, noteDescription, noteCategory, noteTags, isPrivate } =
         req.body;
+
+      const tags =
+        typeof noteTags === "string" ? noteTags.split(",") : noteTags || [];
+
       const validate = createNotesValidator.safeParse({
         noteTitle,
         noteDescription,
         noteCategory,
-        noteTags,
-        isPrivate,
+        noteTags: tags,
+        isPrivate: Boolean(isPrivate),
       });
+
       if (!validate.success) {
         return next(createHttpError(400, getErrorMessage(validate.error)));
       }
 
-      const _req = req as ICustomRequest;
-
       let uploadStatus: any = null;
+      let filePath = "";
+      let fileUrl = "";
+
       if (_req.file) {
         uploadStatus = await NotesService.uploadPdf(_req.file);
+        console.log(uploadStatus);
         if (!uploadStatus) {
-          return next(createHttpError(500, "Failed to upload pdf"));
+          return next(createHttpError(500, "Failed to upload PDF"));
         }
+        filePath = _req.file.path;
+        fileUrl = uploadStatus.result.secure_url;
       }
+
       const note = await NotesService.createNote(_req.user.id, {
         noteTitle,
         noteDescription,
         noteCategory: noteCategory || "general",
-        noteTags: noteTags || [],
-        isPrivate: isPrivate || false,
-        fileUrl: uploadStatus?.result.secure_url || "",
-        filePath: _req.file?.path || "",
+        noteTags: tags,
+        isPrivate: Boolean(isPrivate) || false,
+        fileUrl,
+        filePath,
       });
 
       if (!note) {
         return next(createHttpError(500, "Error creating note"));
       }
-      const status = await aiService.embedPdfFile(
-        uploadStatus?.filePath,
-        note.id
-      );
-      if (!status) {
-        return next(createHttpError(500, "Error creating note"));
+
+      if (filePath) {
+        const status = await aiService.embedPdfFile(filePath, note.id);
+        if (!status) {
+          return next(createHttpError(500, "Error processing PDF"));
+        }
       }
 
-      if (uploadStatus) {
+      if (uploadStatus && uploadStatus.filePath) {
         await NotesService.unlinkPdf(uploadStatus.filePath);
       }
 
       return res.json({
+        success: true,
         message: "Note created successfully",
         data: note,
       });
     } catch (error) {
+      console.error(error);
       return next(createHttpError(500, "Error creating note"));
     }
   }
@@ -81,34 +95,49 @@ class NotesController {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
       const category = req.query.category as string;
-      const tag = req.query.tag as string;
+      let orderBy = req.query.orderBy as string;
+      let sortBy = req.query.sortBy as string;
+      let filterBy = req.query.filterBy as string;
 
-      if (category && tag) {
-        return next(
-          createHttpError(
-            400,
-            "You can't use both category and tag in the same time"
-          )
-        );
+      if (!sortBy) {
+        sortBy = "desc";
       }
-      if (category) {
-        const isCategoryExists = await NotesService.checkIsCategoryExists(
-          category
-        );
-        if (!isCategoryExists) {
-          return next(createHttpError(404, "Category not found"));
-        }
+      if (sortBy !== "asc" && sortBy !== "desc") {
+        sortBy = "desc";
+      }
+      console.log(orderBy);
+      if (!["newest", "oldest", "modified", "atoz", "ztoa"].includes(orderBy)) {
+        orderBy = "updatedAt";
+      }
+      if (!["asc", "desc"].includes(sortBy)) {
+        sortBy = "desc";
+      }
+      if (orderBy === "newest") {
+        orderBy = "createdAt";
+        sortBy = "desc";
+      }
+      if (orderBy === "oldest") {
+        orderBy = "createdAt";
+        sortBy = "asc";
+      }
+      if (orderBy === "modified") {
+        orderBy = "updatedAt";
       }
 
-      const notes = await NotesService.getNotes(
+      if (!["all", "starred", "recent"].includes(filterBy)) {
+        filterBy = "all";
+      }
+      console.log(orderBy);
+      const { notes, _count } = await NotesService.getNotes(
         _req.user.id,
         limit,
         offset,
-        category,
-        tag
+        category === "all" ? undefined : category,
+        filterBy,
+        orderBy,
+        sortBy
       );
-      const totalNotes = await NotesService.countNotesByUserId(_req.user.id);
-      const totalPages = Math.ceil(totalNotes / limit);
+      const totalPages = Math.ceil(_count.notes / limit);
 
       return res.json({
         message: "Notes retrieved successfully",
@@ -117,10 +146,11 @@ class NotesController {
           currentPage: page,
           pageSize: notes.length,
           totalPages,
-          totalNotes,
+          totalNotes: _count.notes,
         },
       });
     } catch (error) {
+      console.error(error);
       return next(createHttpError(500, "Error getting notes"));
     }
   }
@@ -193,9 +223,12 @@ class NotesController {
     try {
       const _req = req as ICustomRequest;
       const category = await NotesService.createCategory(
-        req.body.name,
-        _req.user.id
+        _req.user.id,
+        req.body.name
       );
+      if (!category || category.success === false) {
+        return next(createHttpError(category.status, category.message));
+      }
       return res.json({
         success: true,
         message: "Category created successfully",
@@ -203,6 +236,54 @@ class NotesController {
       });
     } catch (error) {
       return next(createHttpError(500, "Error creating category"));
+    }
+  }
+
+  // Favorite notes
+  public async toggleStarredNote(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const _req = req as ICustomRequest;
+      const noteId = req.params.id;
+      if (!noteId) return next(createHttpError(400, "Note id is required"));
+
+      const note = await NotesService.toggleStarredNote(noteId, _req.user.id);
+      if (!note.success) {
+        return next(createHttpError(404, "Note not found"));
+      }
+
+      return res.json({
+        success: true,
+        message: "Note starred successfully",
+        data: note.data,
+      });
+    } catch (error) {
+      return next(createHttpError(500, "Error toggling starred note"));
+    }
+  }
+  public async deleteNote(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const _req = req as ICustomRequest;
+      const noteId = req.params.id;
+      if (!noteId) return next(createHttpError(400, "Note id is required"));
+      const note = await NotesService.deleteNote(noteId, _req.user.id);
+      if (!note.success) {
+        return next(createHttpError(note.status, note.message));
+      }
+      return res.json({
+        success: true,
+        message: "Note deleted successfully",
+        data: note.data,
+      });
+    } catch (error) {
+      return next(createHttpError(500, "Error deleting note"));
     }
   }
 }

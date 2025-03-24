@@ -16,7 +16,7 @@ const cookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: "lax",
   secure: false,
-  expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
+  maxAge: 24 * 60 * 60 * 1000 * 30,
 };
 
 class AuthController {
@@ -136,7 +136,6 @@ class AuthController {
       maxAge: 1000 * 60 * 60,
     });
     res.cookie("refreshToken", token.refreshToken, cookieOptions);
-    res.clearCookie("registrationToken");
     return res.json({
       message: "User registration completed successfully!",
     });
@@ -179,20 +178,8 @@ class AuthController {
       return next(createHttpError(500, "Error creating token"));
     }
 
-    res.cookie("accessToken", token.accessToken, {
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      sameSite: "lax",
-      secure: false,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
-    });
-    res.cookie("refreshToken", token.refreshToken, {
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      sameSite: "lax",
-      secure: false,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000 * 30),
-    });
+    res.cookie("accessToken", token.accessToken, cookieOptions);
+    res.cookie("refreshToken", token.refreshToken, cookieOptions);
 
     return res.json({
       success: true,
@@ -236,7 +223,6 @@ class AuthController {
     }
     const accessToken = await AuthService.verifyRefreshToken(refreshToken);
     if (!accessToken) {
-      res.clearCookie("refreshToken");
       return next(createHttpError(400, "Invalid Token, Please signin again"));
     }
     res.cookie("accessToken", accessToken, cookieOptions);

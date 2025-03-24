@@ -12,7 +12,7 @@ class AuthService {
     email: string;
   }) {
     return jwt.sign({ id, email }, _env.JWT_SECRET as string, {
-      expiresIn: "15m",
+      expiresIn: "1d",
     });
   }
   private async generateRefreshToken({
@@ -23,11 +23,8 @@ class AuthService {
     email: string;
   }): Promise<string | false> {
     const token = jwt.sign({ id, email }, _env.JWT_SECRET as string, {
-      expiresIn: "30d",
+      expiresIn: "30d", /// valid for 30 days
     });
-    console.log("token", token);
-    console.log("id", id);
-    console.log("email", email);
     const pushdb = await prisma.user.update({
       where: {
         id,
@@ -98,7 +95,6 @@ class AuthService {
       const decoded = jwt.verify(token, _env.JWT_SECRET as string) as {
         email: string;
       };
-      console.log(decoded);
       return {
         success: true,
         email: decoded.email,
