@@ -93,7 +93,8 @@ class NotesService {
     limit: number,
     offset: number,
     orderBy: string,
-    sortBy: string
+    sortBy: string,
+    category?: string
   ) {
     let orderFilter: any = {};
     switch (orderBy) {
@@ -360,7 +361,7 @@ class NotesService {
   ): Promise<any> {
     try {
       if (category) {
-        return this.getNotesByCategory(
+        return await this.getNotesByCategory(
           userId,
           limit,
           offset,
@@ -370,16 +371,23 @@ class NotesService {
         );
       }
       if (filterBy === "starred") {
-        return this.getStarredNotesByUserId(
+        return await this.getStarredNotesByUserId(
           userId,
           limit,
           offset,
           orderBy,
-          sortBy
+          sortBy,
+          category
         );
       }
 
-      return this.getNotesByUserId(userId, limit, offset, orderBy, sortBy);
+      return await this.getNotesByUserId(
+        userId,
+        limit,
+        offset,
+        orderBy,
+        sortBy
+      );
     } catch (error) {
       console.error(error);
       return [];
@@ -431,6 +439,9 @@ class NotesService {
               },
             },
           ],
+        },
+        include: {
+          category: true,
         },
       });
       return notes;
@@ -529,6 +540,52 @@ class NotesService {
       };
     } catch (error) {
       return createServiceError("Error deleting note");
+    }
+  }
+  public async updateNote(
+    noteId: string,
+    data: any,
+    userId: string
+  ): Promise<any> {
+    let { noteTitle, noteDescription, noteCategory, noteTags, isPrivate } =
+      data;
+    console.log(data);
+    try {
+      const note = await prisma.notes.findUnique({
+        where: {
+          id: noteId,
+        },
+      });
+      if (!note) return createServiceError("Note not found", 404);
+      if (noteTags.length <= 0) {
+        noteTags = note.tags;
+      }
+      const result = await prisma.notes.update({
+        where: {
+          id: noteId,
+        },
+        data: {
+          noteTitle: noteTitle || note.noteTitle,
+          noteDescription: noteDescription || note.noteDescription,
+          tags: {
+            set: noteTags,
+          },
+          category: {
+            connect: {
+              id: noteCategory || note.categoryId,
+            },
+          },
+          isPrivate: isPrivate,
+        },
+      });
+      if (!result) return createServiceError("Error updating note");
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.log(error);
+      return createServiceError("Error updating note");
     }
   }
 }

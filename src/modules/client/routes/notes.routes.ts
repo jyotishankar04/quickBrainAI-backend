@@ -19,4 +19,6 @@ router.delete("/:id", NotesController.deleteNote);
 router.post("/", pdfUpload.single("pdfFile"), NotesController.createNote);
 router.get("/", NotesController.getNotes);
 router.get("/:id", NotesController.getNoteById);
+router.put("/:id", NotesController.updateNote);
+
 export default router;

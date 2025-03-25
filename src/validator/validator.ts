@@ -53,6 +53,23 @@ const createNotesValidator = zod.object({
     .optional(),
   isPrivate: zod.boolean().optional().default(false),
 });
+const updateNotesValidator = zod.object({
+  noteTitle: zod
+    .string()
+    .min(3, {
+      message: "Title must be at least 3 characters",
+    })
+    .optional(),
+  noteDescription: zod
+    .string()
+    .min(3, {
+      message: "Description must be at least 3 characters",
+    })
+    .optional(),
+  noteCategory: zod.string().optional(),
+
+  isPrivate: zod.boolean().optional().default(false),
+});
 
 export {
   getErrorMessage,
@@ -61,4 +78,5 @@ export {
   registerCompletionValidator,
   loginValidator,
   createNotesValidator,
+  updateNotesValidator,
 };
