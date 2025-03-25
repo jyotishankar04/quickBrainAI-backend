@@ -284,6 +284,7 @@ class NotesService {
         file.path,
         CLOUDINARY_FOLDER.pdfs
       );
+      console.log(result);
       return result;
     } catch (error) {
       console.error(error);
