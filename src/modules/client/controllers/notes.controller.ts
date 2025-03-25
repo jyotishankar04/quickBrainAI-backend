@@ -4,6 +4,7 @@ import { ICustomRequest } from "../../../types/client.types";
 import {
   createNotesValidator,
   getErrorMessage,
+  updateNotesValidator,
 } from "../../../validator/validator";
 import NotesService from "../services/notes.service";
 import aiService from "../services/ai.service";
@@ -105,7 +106,6 @@ class NotesController {
       if (sortBy !== "asc" && sortBy !== "desc") {
         sortBy = "desc";
       }
-      console.log(orderBy);
       if (!["newest", "oldest", "modified", "atoz", "ztoa"].includes(orderBy)) {
         orderBy = "updatedAt";
       }
@@ -127,7 +127,6 @@ class NotesController {
       if (!["all", "starred", "recent"].includes(filterBy)) {
         filterBy = "all";
       }
-      console.log(orderBy);
       const { notes, _count } = await NotesService.getNotes(
         _req.user.id,
         limit,
@@ -196,6 +195,51 @@ class NotesController {
       });
     } catch (error) {
       return next(createHttpError(500, "Error getting notes"));
+    }
+  }
+  public async updateNote(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    const _req = req as ICustomRequest;
+    try {
+      const { noteTitle, noteDescription, noteCategory, noteTags, isPrivate } =
+        req.body;
+      console.log(req.body);
+      const validate = updateNotesValidator.safeParse({
+        noteTitle,
+        noteDescription,
+        noteCategory,
+        noteTags,
+        isPrivate: Boolean(isPrivate),
+      });
+
+      if (!validate.success) {
+        return next(createHttpError(400, getErrorMessage(validate.error)));
+      }
+      const note = await NotesService.updateNote(
+        req.params.id,
+        {
+          noteTitle,
+          noteDescription,
+          noteCategory,
+          noteTags,
+          isPrivate,
+        },
+        _req.user.id
+      );
+      if (!note.success) {
+        return next(createHttpError(note.status, note.message));
+      }
+      return res.json({
+        success: true,
+        message: "Note updated successfully",
+        data: note.data,
+      });
+    } catch (error) {
+      console.error(error);
+      return next(createHttpError(500, "Error updating note"));
     }
   }
   public async getCategories(
