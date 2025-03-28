@@ -20,5 +20,6 @@ router.post("/", pdfUpload.single("pdfFile"), NotesController.createNote);
 router.get("/", NotesController.getNotes);
 router.get("/:id", NotesController.getNoteById);
 router.put("/:id", NotesController.updateNote);
-
+router.get("/chat/:id", NotesController.getChat);
+router.put("/save/:id", NotesController.saveNote);
 export default router;

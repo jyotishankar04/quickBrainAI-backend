@@ -330,6 +330,56 @@ class NotesController {
       return next(createHttpError(500, "Error deleting note"));
     }
   }
+  public async getChat(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const _req = req as ICustomRequest;
+      const noteId = req.params.id;
+      if (!noteId) return next(createHttpError(400, "Note id is required"));
+      const chat = await NotesService.getChatsByNoteId(noteId);
+      if (!chat.success) {
+        return res.json({
+          success: false,
+          message: "Chat not found",
+          data: [],
+        });
+      }
+      return res.json({
+        success: true,
+        message: "Chat retrieved successfully",
+        data: chat.data,
+      });
+    } catch (error) {
+      console.error(error);
+      return next(createHttpError(500, "Error getting chat"));
+    }
+  }
+  public async saveNote(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const _req = req as ICustomRequest;
+      const noteId = req.params.id;
+      const content = req.body.content;
+      if (!noteId) return next(createHttpError(400, "Note id is required"));
+      const note = await NotesService.saveNote(noteId, content);
+      if (!note.success) {
+        return next(createHttpError(note.status, note.message));
+      }
+      return res.json({
+        success: true,
+        message: "Note saved successfully",
+        data: note.data,
+      });
+    } catch (error) {
+      console.error(error);
+      return next(createHttpError(500, "Error saving note"));
+    }
+  }
 }
-
 export default new NotesController();

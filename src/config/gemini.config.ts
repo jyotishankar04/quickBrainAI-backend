@@ -12,6 +12,7 @@ const summarySchema: Schema = {
       description: "List of key points with titles and descriptions",
       items: {
         type: SchemaType.OBJECT,
+        required: ["title", "description"], // Ensure both fields are present
         properties: {
           title: {
             type: SchemaType.STRING,
@@ -26,6 +27,7 @@ const summarySchema: Schema = {
     },
   },
 };
+
 const genAI = new GoogleGenerativeAI(_env.GOOGLE_API_KEY as string);
 const summaryModel = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
@@ -67,7 +69,7 @@ const chatBotSchema: Schema = {
   properties: {
     answer: {
       type: SchemaType.STRING,
-      description: "The answer to the question",
+      description: "The answer to the question in markdown format",
     },
   },
 };
