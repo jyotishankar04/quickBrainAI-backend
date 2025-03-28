@@ -4,8 +4,7 @@ import authMiddleware from "../middlewares/auth.middleware";
 const router = Router();
 
 router.use(authMiddleware);
-router.get("/pdf/summary", AiController.getPdfSummary);
-router.get("/pdf/answer", AiController.getAnswerFromPdf);
-router.get("/pdf/chat/:noteId", AiController.getChatFromPdf);
-
+router.get("/pdf/summary/:noteId", AiController.getPdfSummary);
+router.post("/pdf/answer", AiController.getAnswerFromPdf);
+router.post("/pdf/chat/:noteId", AiController.getChatFromPdf);
 export default router;

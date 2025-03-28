@@ -10,7 +10,7 @@ class AiController {
     res: Response,
     next: NextFunction
   ): Promise<any> {
-    const noteId = req.body.noteId;
+    const noteId = req.params.noteId;
     const summary = await AiService.getPdfSummary(noteId);
     res.json({
       message: "PDF summary retrieved successfully!",

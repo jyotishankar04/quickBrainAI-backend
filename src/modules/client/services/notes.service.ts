@@ -410,11 +410,6 @@ class NotesService {
               avatarUrl: true,
             },
           },
-          chat: {
-            include: {
-              messages: true,
-            },
-          },
         },
       });
       return note;
@@ -587,6 +582,57 @@ class NotesService {
     } catch (error) {
       console.log(error);
       return createServiceError("Error updating note");
+    }
+  }
+  public async getChatsByNoteId(noteId: string): Promise<any> {
+    try {
+      console.log(noteId);
+      const chats = await prisma.chat.findFirst({
+        where: {
+          noteId: noteId,
+        },
+        include: {
+          messages: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      });
+      if (!chats) return createServiceError("Chat not found", 404);
+      return {
+        success: true,
+        data: chats,
+      };
+    } catch (error) {
+      console.error(error);
+      return createServiceError("Error getting chats");
+    }
+  }
+  public async saveNote(noteId: string, content: string): Promise<any> {
+    try {
+      const note = await prisma.notes.findUnique({
+        where: {
+          id: noteId,
+        },
+      });
+      if (!note) return createServiceError("Note not found", 404);
+      const result = await prisma.notes.update({
+        where: {
+          id: noteId,
+        },
+        data: {
+          noteContent: content,
+        },
+      });
+      if (!result) return createServiceError("Error saving note");
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error(error);
+      return createServiceError("Error saving note");
     }
   }
 }

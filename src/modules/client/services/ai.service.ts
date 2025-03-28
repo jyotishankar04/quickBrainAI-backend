@@ -235,10 +235,10 @@ class AiService {
     const chatId = note.chatId;
     const record = await this.getEmbeddingsList(1, noteId, question);
     const res = await chatBotModel.generateContent(
-      "What is the answer to this question: " +
+      "****(always give response in md format)**** What is the answer to this question: " +
         question +
         " ?" +
-        "from the document in simple understandable language (if not found then return emptystring) : " +
+        "from the document in simple understandable language  (if not found then return emptystring) : " +
         JSON.stringify(record)
     );
     if (
@@ -277,7 +277,9 @@ class AiService {
                   sender: "USER",
                 },
                 {
-                  content: answer,
+                  content:
+                    answer ||
+                    "No answer found in the document. Please ask questions related to the document.",
                   sender: "AI",
                 },
               ],
