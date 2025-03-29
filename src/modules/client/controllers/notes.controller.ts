@@ -29,7 +29,7 @@ class NotesController {
         noteDescription,
         noteCategory,
         noteTags: tags,
-        isPrivate: Boolean(isPrivate),
+        isPrivate: isPrivate == "true" || isPrivate == true ? true : false,
       });
 
       if (!validate.success) {
@@ -55,7 +55,7 @@ class NotesController {
         noteDescription,
         noteCategory: noteCategory || "general",
         noteTags: tags,
-        isPrivate: Boolean(isPrivate) || false,
+        isPrivate: isPrivate == "true" || isPrivate == true ? true : false,
         fileUrl,
         filePath,
       });
@@ -212,7 +212,7 @@ class NotesController {
         noteDescription,
         noteCategory,
         noteTags,
-        isPrivate: Boolean(isPrivate),
+        isPrivate: isPrivate == "true" || isPrivate == true ? true : false,
       });
 
       if (!validate.success) {
@@ -225,7 +225,7 @@ class NotesController {
           noteDescription,
           noteCategory,
           noteTags,
-          isPrivate,
+          isPrivate: isPrivate == "true" || isPrivate == true ? true : false,
         },
         _req.user.id
       );

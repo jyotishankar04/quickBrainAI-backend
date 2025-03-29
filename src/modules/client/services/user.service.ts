@@ -1,6 +1,7 @@
 import createHttpError, { HttpError } from "http-errors";
 import prisma from "../../../config/prisma.config";
 import bcrypt from "bcrypt";
+import { createServiceError } from "../../../utils/service.error";
 class UserService {
   private async getHashedPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
@@ -30,6 +31,10 @@ class UserService {
           id: string;
           email: string;
           password: string;
+          isVerified: boolean;
+          name: string;
+          username: string;
+          avatarUrl: string;
         };
       }
     | false
@@ -43,12 +48,19 @@ class UserService {
         email: true,
         password: select.password,
         id: true,
+        name: true,
+        username: true,
+        avatarUrl: true,
+        role: true,
       },
     });
     if (user)
       return {
         success: true,
-        user,
+        user: {
+          ...user,
+          avatarUrl: user.avatarUrl || "",
+        },
       };
     return false;
   }
@@ -88,6 +100,36 @@ class UserService {
     } catch (error) {
       console.log(error);
       return createHttpError(500, "Error creating user");
+    }
+  }
+
+  public async getUserById(id: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+          username: true,
+          bio: true,
+          createdAt: true,
+          isVerified: true,
+          location: true,
+        },
+      });
+
+      if (!user) return createServiceError("User not found", 404);
+      return {
+        success: true,
+        user: user,
+      };
+    } catch (error) {
+      console.error(error);
+      return createServiceError("Error getting user");
     }
   }
 }

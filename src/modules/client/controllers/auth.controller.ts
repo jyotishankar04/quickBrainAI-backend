@@ -248,10 +248,7 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: "User authenticated successfully!",
-        data: {
-          ...userExist,
-          password: "",
-        },
+        data: userExist.user,
       });
     } catch (error) {
       console.log(error);

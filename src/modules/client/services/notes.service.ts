@@ -59,8 +59,19 @@ class NotesService {
           id: userId,
         },
       },
-      include: {
+      select: {
+        id: true,
+        noteTitle: true,
+        noteDescription: true,
         category: true,
+        tags: true,
+        isPrivate: true,
+        isStared: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        files: true,
+        categoryId: true,
         user: {
           select: {
             id: true,
@@ -130,8 +141,19 @@ class NotesService {
         },
         isStared: true,
       },
-      include: {
+      select: {
+        id: true,
+        noteTitle: true,
+        noteDescription: true,
         category: true,
+        tags: true,
+        isPrivate: true,
+        isStared: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        files: true,
+        categoryId: true,
         user: {
           select: {
             id: true,
@@ -207,8 +229,19 @@ class NotesService {
           name: categoryName,
         },
       },
-      include: {
+      select: {
+        id: true,
+        noteTitle: true,
+        noteDescription: true,
         category: true,
+        tags: true,
+        isPrivate: true,
+        isStared: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        files: true,
+        categoryId: true,
         user: {
           select: {
             id: true,
@@ -303,7 +336,7 @@ class NotesService {
       noteDescription,
       noteCategory = "General",
       noteTags,
-      isPrivate,
+      isPrivate = false,
       fileUrl,
       filePath,
     }: ICreateNote
@@ -335,7 +368,7 @@ class NotesService {
               },
             },
           },
-          isPrivate: isPrivate || false,
+          isPrivate: isPrivate,
           files: (fileUrl && [fileUrl]) || [],
           user: {
             connect: {
