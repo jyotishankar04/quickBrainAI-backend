@@ -20,11 +20,22 @@ class App {
   private setMiddleware(): void {
     this.app.use(
       cors({
-        origin: ["http://localhost:5173", "http://localhost:4173"],
-
+        origin: (origin, callback) => {
+          if (!origin) return callback(null, true);
+          const allowedOrigins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://quickbrainai.netlify.app",
+          ];
+          if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(new Error("Not allowed by CORS"));
+          }
+          return callback(null, true);
+        },
         credentials: true,
-      } as CorsOptions)
+      })
     );
+
     this.app.use(express.json());
     this.app.use(bodyParser.json());
     this.app.use(cookieParser());
