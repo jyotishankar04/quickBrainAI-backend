@@ -11,6 +11,7 @@ import {
   uploadOnCloudinary,
 } from "../../../utils/cloudinary.utils";
 import { CLOUDINARY_FOLDER } from "../../../config/constants";
+import notesService from "../services/notes.service";
 
 class UserController {
   public async getUserById(
@@ -93,6 +94,7 @@ class UserController {
         if (!upload) {
           return next(createHttpError(400, "Error uploading image"));
         }
+        notesService.unlinkPdf(upload.filePath);
       }
 
       const result = await UserService.updateUser(userId, {
