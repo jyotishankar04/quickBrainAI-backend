@@ -21,6 +21,8 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     if (!id || !email) {
       res.clearCookie("accressToken", {
         httpOnly: true,
+        secure: _env.NODE_ENV === "production",
+        sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
       });
     }
 
@@ -32,6 +34,8 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     if (!id || !email) {
       res.clearCookie("accressToken", {
         httpOnly: true,
+        secure: _env.NODE_ENV === "production",
+        sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
       });
       return next(createHttpError(400, "Access Denied!, Invalid Token"));
     }

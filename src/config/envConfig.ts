@@ -12,6 +12,7 @@ const _config = {
   PINECONE_API_KEY: process.env.PINECONE_API_KEY,
   GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID,
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+  NODE_ENV: process.env.NODE_ENV,
 };
 console.log(_config);
 

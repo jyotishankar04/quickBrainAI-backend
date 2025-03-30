@@ -11,11 +11,12 @@ import createHttpError from "http-errors";
 import userService from "../services/user.service";
 import AuthService from "../services/auth.service";
 import { ICustomRequest } from "../../../types/client.types";
+import _env from "../../../config/envConfig";
 
 const cookieOptions: CookieOptions = {
   httpOnly: true,
-  sameSite: "lax",
-  secure: false,
+  sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
+  secure: _env.NODE_ENV === "production",
   maxAge: 24 * 60 * 60 * 1000 * 30,
 };
 
@@ -99,14 +100,22 @@ class AuthController {
       return next(createHttpError(400, getErrorMessage(validator.error)));
     }
     if (!registrationToken) {
-      res.clearCookie("registrationToken");
+      res.clearCookie("registrationToken", {
+        httpOnly: true,
+        secure: _env.NODE_ENV === "production",
+        sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
+      });
       return next(createHttpError(400, "Please register again"));
     }
     const response = await AuthService.registerTokenVerification(
       registrationToken
     );
     if (!response) {
-      res.clearCookie("registrationToken");
+      res.clearCookie("registrationToken", {
+        httpOnly: true,
+        secure: _env.NODE_ENV === "production",
+        sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
+      });
       return next(createHttpError(400, "Please register again"));
     }
 
@@ -131,10 +140,7 @@ class AuthController {
 
     await MailService.sendWelcomeEmail(user.user.email, body.name);
 
-    res.cookie("accessToken", token.accessToken, {
-      ...cookieOptions,
-      maxAge: 1000 * 60 * 60,
-    });
+    res.cookie("accessToken", token.accessToken, cookieOptions);
     res.cookie("refreshToken", token.refreshToken, cookieOptions);
     return res.json({
       message: "User registration completed successfully!",
@@ -198,8 +204,16 @@ class AuthController {
     } catch (error) {
       return next(createHttpError(500, "Error logging out user"));
     }
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: _env.NODE_ENV === "production",
+      sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: _env.NODE_ENV === "production",
+      sameSite: _env.NODE_ENV === "production" ? "none" : "lax",
+    });
 
     res.json({
       success: true,
