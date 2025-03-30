@@ -71,6 +71,31 @@ const updateNotesValidator = zod.object({
   isPrivate: zod.boolean().optional().default(false),
 });
 
+const updateUserValidator = zod.object({
+  name: zod
+    .string()
+    .min(3, {
+      message: "Name must be at least 3 characters",
+    })
+    .optional(),
+  username: zod
+    .string()
+    .min(3, {
+      message: "Username must be at least 3 characters",
+    })
+    .optional(),
+  bio: zod.string().optional(),
+  location: zod.string().optional(),
+  customUrl: zod.string().optional(),
+  instagramUrl: zod.string().optional(),
+  twitterUrl: zod.string().optional(),
+  githubUrl: zod.string().optional(),
+  linkedinUrl: zod.string().optional(),
+
+  dob: zod.date().optional(),
+  gender: zod.string().optional(),
+});
+
 export {
   getErrorMessage,
   registerSetp1Validator,
@@ -79,4 +104,5 @@ export {
   loginValidator,
   createNotesValidator,
   updateNotesValidator,
+  updateUserValidator,
 };

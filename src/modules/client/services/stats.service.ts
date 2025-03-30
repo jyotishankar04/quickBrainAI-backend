@@ -27,15 +27,6 @@ class StatsService {
           },
         },
       });
-      //       const lastFiveActivities = await prisma.$queryRaw`
-      //   (SELECT id, 'note_created' AS action, noteTitle AS title, createdAt FROM "notes" WHERE "userId" = ${userId})
-      //   UNION ALL
-      //   (SELECT id, 'note_updated' AS action, noteTitle AS title, updatedAt AS createdAt FROM "notes" WHERE "userId" = ${userId} AND createdAt != updatedAt)
-      //   UNION ALL
-      //   (SELECT id, 'category_created' AS action, name AS title, createdAt FROM "categories" WHERE "userId" = ${userId})
-      //   ORDER BY createdAt DESC
-      //   LIMIT 5;
-      // `;
 
       const notesLastWeek = await prisma.notes.count({
         where: {

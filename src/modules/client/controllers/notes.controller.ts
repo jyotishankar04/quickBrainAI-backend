@@ -42,7 +42,6 @@ class NotesController {
 
       if (_req.file) {
         uploadStatus = await NotesService.uploadPdf(_req.file);
-        console.log(uploadStatus);
         if (!uploadStatus) {
           return next(createHttpError(500, "Failed to upload PDF"));
         }
