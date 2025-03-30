@@ -13,6 +13,7 @@ class AiController {
     const noteId = req.params.noteId;
     const summary = await AiService.getPdfSummary(noteId);
     res.json({
+      success: true,
       message: "PDF summary retrieved successfully!",
       data: summary,
     });

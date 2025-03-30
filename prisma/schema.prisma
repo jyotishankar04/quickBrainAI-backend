@@ -8,12 +8,12 @@ datasource db {
 }
 
 model User {
-  id           String  @id @default(uuid())
+  id           String    @id @default(uuid())
   name         String
-  username     String  @unique
-  email        String  @unique
-  isVerified   Boolean @default(false)
-  bio          String  @default("Hey there! I'm using QuickBrainAI")
+  username     String    @unique
+  email        String    @unique
+  isVerified   Boolean   @default(false)
+  bio          String    @default("Hey there! I'm using QuickBrainAI")
   avatarId     String?
   avatarUrl    String?
   bannerId     String?
@@ -23,6 +23,9 @@ model User {
   twitterUrl   String?
   githubUrl    String?
   customUrl    String?
+  linkedinUrl  String?
+  gender       Gender?
+  dob          DateTime?
 
   password     String
   refreshToken String?
@@ -35,10 +38,33 @@ model User {
   Notes            Notes[]
   categories       Category[]
   Chat             Chat[]
+  UserSkill        UserSkill[]
 
   @@index([email])
   @@index([username])
   @@map("users")
+}
+
+model Skill {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  UserSkill UserSkill[]
+
+  @@map("skills")
+}
+
+model UserSkill {
+  userId  String
+  skillId String
+  User    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, skillId]) // Composite primary key
+  @@map("user_skills")
 }
 
 model Category {
@@ -136,4 +162,10 @@ enum SubscriptionPlan {
 enum Sender {
   USER
   AI
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
