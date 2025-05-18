@@ -19,6 +19,7 @@ const uploadOnCloudinary = async (
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
       resource_type: "auto",
+      access_mode: "public",
     });
     return {
       result,

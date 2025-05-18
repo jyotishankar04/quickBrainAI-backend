@@ -47,7 +47,7 @@ const answerSchema: Schema = {
       description: "List of possible answers",
       items: {
         type: SchemaType.STRING,
-        description: "A possible answer to the question",
+        description: "A possible answer to the question if possible else return empty `The answer is not available`",
       },
       minItems: 3,
       maxItems: 3,
@@ -69,7 +69,7 @@ const chatBotSchema: Schema = {
   properties: {
     answer: {
       type: SchemaType.STRING,
-      description: "The answer to the question in markdown format",
+      description: "The answer to the question in markdown format if possible else return empty `The answer is not available`",
     },
   },
 };
